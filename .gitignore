@@ -1,0 +1,50 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS (Eclipse) ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### 日志与临时文件 ###
+*.log
+logs/
+tmp/
+
+### 系统垃圾文件 ###
+.DS_Store
+Thumbs.db
+
+### 应用敏感配置文件 ###
+# 允许提交开发环境模板（application-dev.yml），但保护真实密码文件
+application-prod.yml
+application-local.yml
+# 如果以后你把真实密码写进了 application.yml，记得取消下面这行的注释：
+# application.yml

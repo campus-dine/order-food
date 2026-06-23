@@ -8,34 +8,29 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("users")
-public class User {
+@TableName("merchants")
+public class Merchant {
+
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @TableField("open_id")
-    private String openId;
+    @TableField("user_id")
+    private Integer userId;
 
-    @TableField("username")
-    private String username;
-
-    @TableField("avatar_url")
-    private String avatarUrl;
-
-    @TableField("role")
-    private String role;
+    // 🚨 同样使用 BigDecimal
+    @TableField("balance")
+    private BigDecimal balance;
 
     @TableField("create_time")
     private LocalDateTime createTime;
 
     @TableField("update_time")
     private LocalDateTime updateTime;
-
 }

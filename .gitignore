@@ -48,3 +48,9 @@ application-prod.yml
 application-local.yml
 # 如果以后你把真实密码写进了 application.yml，记得取消下面这行的注释：
 # application.yml
+
+
+documents/~$*.xlsx
+documents/~$*.docx
+documents/*.docx
+documents/*.xlsx

@@ -8,34 +8,29 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("users")
-public class User {
+@TableName("customers")
+public class Customer {
+
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
-    @TableField("open_id")
-    private String openId;
+    @TableField("user_id")
+    private Integer userId;
 
-    @TableField("username")
-    private String username;
-
-    @TableField("avatar_url")
-    private String avatarUrl;
-
-    @TableField("role")
-    private String role;
+    //  在 Java 中，DECIMAL 对应 BigDecimal 类型，存钱最安全
+    @TableField("balance")
+    private BigDecimal balance;
 
     @TableField("create_time")
     private LocalDateTime createTime;
 
     @TableField("update_time")
     private LocalDateTime updateTime;
-
 }

@@ -31,40 +31,48 @@ public class JwtTokenUtil {
      * @param userId 用户ID
      * @return 生成的 JWT 字符串
      */
-    public static String generateTokenWithUserId(Long userId) {
+    public static String generateToken(Long userId, Integer role) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
                 .claim("userId", userId) // 载荷：存入用户ID
+                .claim("role", String.valueOf(role))
                 .issuedAt(new Date(now)) // 签发时间
                 .expiration(new Date(now + expirationTime)) // 过期时间
                 .signWith(javaSecretKey) // 签名加密
                 .compact();
+
     }
 
+    private static Claims parseToken(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(javaSecretKey) // 验证签名
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (Exception e) {
+            throw new RuntimeException("Token解析失败或已过期！");
+        }
+    }
     /**
      * 解析 token 并返回用户 id
      * @param token 前端传过来的token
      * @return 用户ID的字符串形式
      */
     public static String parseTokenGetUserId(String token) {
-        try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(javaSecretKey) // 验证签名
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            Claims claims = parseToken(token);
 
             // 提取出 userId 并转成 String 返回
             return String.valueOf(claims.get("userId"));
-        } catch (Exception e) {
-            // 如果 token 过期或者被篡改，这里会直接抛出异常，拦截器可以捕获
-            throw new RuntimeException("Token解析失败或已过期！");
-        }
     }
 
+    public static String parseTokenGetRole(String token) {
+        Claims claims = parseToken(token);
+        return String.valueOf(claims.get("role"));
+    }
 
 //    public static void main(String[] args) {
-//        String token = generateTokenWithUserId(123L);
+//        String token = generateToken(123L);
 //        System.out.println("生成的 Token: " + token);
 //        Long userId = parseTokenGetUserId(token);
 //        System.out.println("解析出的 userId: " + userId);

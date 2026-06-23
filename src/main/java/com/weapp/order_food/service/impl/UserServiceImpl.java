@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weapp.order_food.config.WeChatProperties;
 import com.weapp.order_food.entity.User;
+import com.weapp.order_food.mapper.CustomerMapper;
+import com.weapp.order_food.mapper.MerchantMapper;
 import com.weapp.order_food.mapper.UserMapper;
 import com.weapp.order_food.service.UserService;
 import com.weapp.order_food.utils.HttpClientUtil;
@@ -12,6 +14,7 @@ import com.weapp.order_food.utils.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 
@@ -24,6 +27,9 @@ public class UserServiceImpl implements UserService {
 
     private final WeChatProperties weChatProperties;
 
+//    private final CustomerMapper customerMapper;
+//    private final MerchantMapper merchantMapper;
+
     private static final String WECHAT_LOGIN_URL = "https://api.weixin.qq.com/sns/jscode2session";
 
     @Override
@@ -34,9 +40,10 @@ public class UserServiceImpl implements UserService {
         }
         Long userId = userMapper.getUserByOpenId(openId);
 
+
         if (userId == null) {
             // 新用户：自动注册
-            User user = User.builder().openId(openId).build();
+            User user = User.builder().openId(openId).role(String.valueOf(0)).build();
 
             // 🚨 注意：必须确保该自定义 insertUsers 方法在 Mapper 中配置了主键回填！
             // 或者如果是 MyBatis-Plus，直接改用：this.save(user); (需要当前类继承 ServiceImpl)
@@ -44,10 +51,11 @@ public class UserServiceImpl implements UserService {
 
             log.info("新用户注册成功，自动生成的主键ID为: {}", user.getId());
 
-            String token = JwtTokenUtil.generateTokenWithUserId(user.getId());
+            String token = JwtTokenUtil.generateToken(user.getId(), 0);
             return Result.success("登录成功", token);
         }
-        return Result.success("登录成功", JwtTokenUtil.generateTokenWithUserId(userId));
+        Integer userRole = Integer.parseInt(userMapper.selectById(userId).getRole());
+        return Result.success("登录成功", JwtTokenUtil.generateToken(userId,userRole));
     }
 
     public String getOpenId(String code) {
@@ -78,5 +86,36 @@ public class UserServiceImpl implements UserService {
             return null;
         }
     }
+
+
+    @Override
+    public Result<String> updateUserRole(Long userId,Integer role){
+        log.info("用户 {} 正在选择身份为: {}", userId, role);
+
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+//        商家身份需要超管后台验证，暂不写
+//        if (role == 0 ){
+//
+//        }
+//        else if (role == 1 ){
+//
+//        }
+//        else {
+//            return Result.error("身份选择");
+//        }
+
+        user.setRole(String.valueOf(role));
+
+        boolean success = (userMapper.updateById(user) > 0);
+        if(success){
+            return Result.success("用户身份选择成功");
+        }else{
+            return Result.error("用户身份选择失败");
+        }
+    }
+
 
 }

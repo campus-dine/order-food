@@ -134,7 +134,21 @@ UNIQUE KEY `uk_customer_default` (`customer_id`, `is_default`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户外送地址表';
 
 
-
+-- ================================
+-- 建表 6：购物车表
+-- ================================
+CREATE TABLE IF NOT EXISTS `carts` (
+`id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '购物车记录ID',
+`customer_id` BIGINT NOT NULL COMMENT '关联的客户/学生id',
+`dish_id` BIGINT NOT NULL COMMENT '关联的菜品id',
+`added_price` DECIMAL(10, 2) NOT NULL COMMENT '加入购物车时的价格(元)',
+`quantity` INT NOT NULL DEFAULT 1 COMMENT '该菜品在购物车中的数量',
+`create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+`update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+PRIMARY KEY (`id`),
+-- 🚨 核心守护：同一个客户的同一种菜品，在购物车里只能有一条记录
+UNIQUE KEY `uk_customer_dish` (`customer_id`, `dish_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户购物车表';
 
 
 

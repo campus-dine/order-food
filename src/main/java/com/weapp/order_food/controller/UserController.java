@@ -29,7 +29,12 @@ public class UserController {
 //        if (weChatCodeDTO.getRole() != 0 && weChatCodeDTO.getRole() != 1) {
 //            return Result.error("身份参数非法");
 //        }
-        return userService.loginWithWeChat(weChatCodeDTO.getCode());
+        try {
+            return userService.loginWithWeChat(weChatCodeDTO.getCode());
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+
     }
 
     @ApiOperation("选择/切换用户身份")

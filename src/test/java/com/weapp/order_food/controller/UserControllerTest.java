@@ -2,6 +2,7 @@ package com.weapp.order_food.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weapp.order_food.model.dto.WeChatCodeDTO;
+import com.weapp.order_food.service.RoleService;
 import com.weapp.order_food.service.UserService;
 import com.weapp.order_food.utils.Result;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,11 +14,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
@@ -29,6 +28,9 @@ class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private RoleService roleService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -117,57 +119,131 @@ class UserControllerTest {
         verify(userService, never()).loginWithWeChat(anyString());
     }
 
-    // ==================== 用户角色更新接口测试 ====================
-
     @Test
-    @DisplayName("测试6: 更新用户角色成功")
-    void testUpdateUserRole_Success() throws Exception {
-        Long userId = 1001L;
-        Integer role = 1;
-        Result<String> mockResult = Result.success("用户身份选择成功");
+    @DisplayName("测试6: 微信登录失败 - Service抛出异常")
+    void testLoginWithWeChat_ServiceException() throws Exception {
+        when(userService.loginWithWeChat(anyString()))
+                .thenThrow(new RuntimeException("网络请求失败"));
 
-        when(userService.updateUserRole(anyLong(), anyInt())).thenReturn(mockResult);
-
-        mockMvc.perform(post("/users/role/update")
+        mockMvc.perform(post("/users/login/wechat")
                 .contentType(MediaType.APPLICATION_JSON)
-                .param("userId", userId.toString())
-                .param("role", role.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.message").value("用户身份选择成功"));
-
-        verify(userService, times(1)).updateUserRole(userId, role);
-    }
-
-    @Test
-    @DisplayName("测试7: 更新用户角色失败 - 用户不存在")
-    void testUpdateUserRole_UserNotFound() throws Exception {
-        Long userId = 9999L;
-        Integer role = 1;
-        Result<String> mockResult = Result.error("用户不存在");
-
-        when(userService.updateUserRole(anyLong(), anyInt())).thenReturn(mockResult);
-
-        mockMvc.perform(post("/users/role/update")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("userId", userId.toString())
-                .param("role", role.toString()))
+                .content(objectMapper.writeValueAsString(validWeChatCodeDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(500))
-                .andExpect(jsonPath("$.message").value("用户不存在"));
+                .andExpect(jsonPath("$.message").value("网络请求失败"));
 
-        verify(userService, times(1)).updateUserRole(userId, role);
+        verify(userService, times(1)).loginWithWeChat("valid_wechat_code_123");
+    }
+
+    // ==================== 选择/切换用户身份接口测试 ====================
+
+    @Test
+    @DisplayName("测试7: 选择用户角色成功 - 客户角色")
+    void testChooseRole_Customer_Success() throws Exception {
+        Long userId = 1001L;
+        Integer role = 0;
+        String mockToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
+        String newToken = "new_jwt_token_customer";
+
+        Result<String> roleResult = Result.success("身份选择成功", newToken);
+
+        when(roleService.chooseUserRole(eq(userId), eq(role))).thenReturn(roleResult);
+
+        mockMvc.perform(put("/users/role")
+                .header("Authorization", mockToken)
+                .param("role", role.toString())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").value(newToken));
+
+        verify(roleService, times(1)).chooseUserRole(userId, role);
     }
 
     @Test
-    @DisplayName("测试8: 更新用户角色失败 - 参数缺失")
-    void testUpdateUserRole_MissingParameters() throws Exception {
-        mockMvc.perform(post("/users/role/update")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("userId", "1001"))
+    @DisplayName("测试8: 选择用户角色成功 - 商家角色")
+    void testChooseRole_Merchant_Success() throws Exception {
+        Long userId = 1001L;
+        Integer role = 1;
+        String mockToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
+        String newToken = "new_jwt_token_merchant";
+
+        Result<String> roleResult = Result.success("身份选择成功", newToken);
+
+        when(roleService.chooseUserRole(eq(userId), eq(role))).thenReturn(roleResult);
+
+        mockMvc.perform(put("/users/role")
+                .header("Authorization", mockToken)
+                .param("role", role.toString())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").value(newToken));
+
+        verify(roleService, times(1)).chooseUserRole(userId, role);
+    }
+
+    @Test
+    @DisplayName("测试9: 选择用户角色失败 - 角色参数非法")
+    void testChooseRole_InvalidRole_Failure() throws Exception {
+        String mockToken = "Bearer mock_jwt_token";
+
+        mockMvc.perform(put("/users/role")
+                .header("Authorization", mockToken)
+                .param("role", "2")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.message").value("身份参数不正确"));
+
+        verify(roleService, never()).chooseUserRole(anyLong(), anyInt());
+    }
+
+    @Test
+    @DisplayName("测试10: 选择用户角色失败 - 缺少role参数")
+    void testChooseRole_MissingRole_Failure() throws Exception {
+        String mockToken = "Bearer mock_jwt_token";
+
+        mockMvc.perform(put("/users/role")
+                .header("Authorization", mockToken)
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(userService, never()).updateUserRole(anyLong(), anyInt());
+        verify(roleService, never()).chooseUserRole(anyLong(), anyInt());
+    }
+
+    @Test
+    @DisplayName("测试11: 选择用户角色失败 - 缺少Authorization头")
+    void testChooseRole_MissingToken_Failure() throws Exception {
+        mockMvc.perform(put("/users/role")
+                .param("role", "1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(roleService, never()).chooseUserRole(anyLong(), anyInt());
+    }
+
+    @Test
+    @DisplayName("测试12: 选择用户角色失败 - roleService返回失败")
+    void testChooseRole_RoleServiceFailure() throws Exception {
+        Long userId = 1001L;
+        Integer role = 1;
+        String mockToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
+
+        Result<String> roleResult = Result.error("身份选择失败");
+
+        when(roleService.chooseUserRole(eq(userId), eq(role))).thenReturn(roleResult);
+
+        mockMvc.perform(put("/users/role")
+                .header("Authorization", mockToken)
+                .param("role", role.toString())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.message").value("身份选择失败"));
+
+        verify(roleService, times(1)).chooseUserRole(userId, role);
     }
 }
-
